@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIttleFS files list</title>
+</head>
+<body>
+    <h3>Upload de Arquivos</h3>
+    <form method="POST" action="/uploadFiles" enctype="multipart/form-data">
+        <div id="drop-zone" style="border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 20px;">
+            Arraste arquivos aqui para enviar
+        </div>
+        <input type="file" name="data">
+        <button type="submit">Enviar Arquivo</button>
+    </form>
+    
+    <ul id="lista-de-arquivos">
+        <li>Carregando arquivos...</li>
+    </ul>
+
+    <script defer>
+        //envio arrastando arquivo
+        const dropZone = document.getElementById('drop-zone');
+
+        // Impede o comportamento padrão de abrir o arquivo no navegador
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        // Captura o arquivo solto
+        dropZone.addEventListener('drop', e => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        }, false);
+
+        // Função de upload via AJAX
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('data', file);
+
+            try {
+                const response = await fetch('/uploadFiles', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert('Upload concluído!');
+                    carregarArquivos(); // Atualiza a lista automaticamente
+                } else {
+                    alert('Erro no upload');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+            }
+        }
+
+
+        async function carregarArquivos() {
+            try {
+                const resposta = await fetch('/lista-little');
+
+                //const texto = await resposta.text();
+                //console.log("Conteúdo bruto recebido:", texto); // Isso vai revelar o intruso
+
+                const listaArquivos = await resposta.json();
+                
+                const container = document.getElementById('lista-de-arquivos');
+                container.innerHTML = ''; // Limpa o "Carregando..."
+
+                if (listaArquivos.length === 0) {
+                    container.innerHTML = '<li>Nenhum arquivo encontrado.</li>';
+                    return;
+                }
+
+                listaArquivos.forEach(arquivo => {
+                    // Cria um elemento de lista para cada arquivo
+                    const li = document.createElement('li');
+                    li.className = 'arquivo-item';
+                    
+                    // Cria um link para o arquivo (abre ao clicar)
+                    const link = document.createElement('a');
+                    link.href = arquivo;
+                    link.textContent = arquivo;
+                    link.target = "_blank";
+                    
+                    li.appendChild(link);
+                    container.appendChild(li);
+                });
+
+            } catch (error) {
+                console.error("Erro ao buscar arquivos:", error);
+                document.getElementById('lista-de-arquivos').innerHTML = '<li>Erro ao carregar lista.</li>';
+            }
+        }
+
+        // Inicia a função ao carregar a página
+        window.onload = carregarArquivos;
+    </script>
+</body>
+</html>
